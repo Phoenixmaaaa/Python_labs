@@ -1,100 +1,142 @@
-#Практическая работа №6. Работа  с файлами.
-
-#Задание 1: Считать из файла input_1.txt числа, записанные через пробел. Записать их произведение в output_1.tx
-def multiply_num(path_to_file):
-    res = 1
-    with open(path_to_file, "r") as input_file:
-       num_list = [int(x) for x in input_file.readline().split(" ")]
-       for i in num_list:
-           res *= i
-       input_file.close()
-    with open("output_1.txt","w") as output_file:
-        output_file.write(str(res))
-        output_file.close()
-    print("Результат умножения чисел из первой строки файла", path_to_file, "сохранен в файл output_1.txt")
-
-#Задание 2: Считать из файла input_2.txt числа, каждое записано на новой строке. Отсортированный список чисел записать в output_2.txt
-def sort_num(path_to_file):
-    res_list = []
-    with open(path_to_file, "r") as input_file:
-        num = input_file.readline()
-        while num:
-            res_list.append(int(num))
-            num = input_file.readline()
-        res_list.sort()
-        input_file.close()
-    with open("output_2.txt","w") as output_file:
-        res_list_1 = "\n".join(map(str, res_list))
-        output_file.write(res_list_1)
-        output_file.close()
-    print("Отсортированы числа из файла", path_to_file, "сохранены в файле output_2.txt")
-
-#Задание 3: Дан файл со сведениями детей. Найти самого младшего и самого страшего ребенка  и записать информацию о них в отдельные файлы.
-def find_kids (path_to_file):
-    path_file_youngest = "The_youngest_kid.txt"
-    path_file_oldest = "The_oldest_kid.txt"
-    min_age = 200
-    max_age = -1
-    with open(path_to_file, "r") as input_file:
-        info_kid = input_file.readline()
-        while info_kid:
-            age = -1
-            if info_kid[-3].isdigit():
-                age = info_kid[-3]+info_kid[-2]
-                age = int(age)
-            else:
-                age = int(info_kid[-2])
-            if age > max_age:
-                max_age = age
-                with open(path_file_oldest,"w") as file_oldest:
-                    file_oldest.write(info_kid)
-                    file_oldest.close()
-            if age < min_age:
-                min_age = age
-                with open(path_file_youngest,"w") as file_youngest:
-                    file_youngest.write(info_kid)
-                    file_youngest.close()
-            info_kid = input_file.readline()
-        input_file.close()
-        print("Самый старший ребенок записан в файле ",path_file_oldest,".Самый младщий в файле", path_file_youngest)
-
-#Ввод пользовательских данных
-
-str_nums_1 = input("Задание 1. Введите,через пробел, список чисел, которые хотите записать в input_1.txt: ")
-path_to_file_1 = "input_1.txt"
-#Запись пользовательских данных в файл
-with open(path_to_file_1,"w") as input_file_1:
-    input_file_1.write(str_nums_1)
-    input_file_1.close()
-multiply_num(path_to_file_1)
-
-str_nums_2 = input("Задание 2. Введите, через пробел, список чисел, которые хотите записать в input_2.txt: ")
-print("Предупреждение! В итоговом файле input_2.txt каждое новое число будет записано с новой строки, как того требует условие!")
-str_nums_2 = str_nums_2.replace(" ", "\n")
-path_to_file_2 = "input_2.txt"
-with open(path_to_file_2,"w") as input_file_2:
-    input_file_2.write(str_nums_2)
-    input_file_2.close()
-sort_num(path_to_file_2)
-
-print("Задание 3. Данные взяты из файла kids_info.txt")
-find_kids("kids_info.txt")
+# Практическео занятие №7. Итоговая работа. CSV - файлы.
+import csv
+import random
+from os import mkdir, listdir, getcwd
 
 
+# Вспомогательная функция для генерации случайных чисел
+def get_random_list(cnt_num, f_num, l_num):
+    res = [random.randint(f_num, l_num) for x in range(0, cnt_num)]
+    return res
 
 
+# Вспомогательная функция, чтобы получить названия столбцов таблицы CSV
+def get_headers(file_csv):
+    headers = []
+    with open(file_csv, "r", newline="") as file:
+        headers = list(file.readline().split(","))
+        file.close()
+    headers[-1] = headers[-1].replace("\r\n", "")
+    headers[-1] = headers[-1].replace("\n", "")
+    return headers
 
 
+# Вспомогательная функция, чтобы узнать необходимый размер для каждого столбца
+def max_lenght_columns(file_csv):
+    headers = get_headers(file_csv)
+    dict_lenghts = dict()
+    for header in headers:
+        dict_lenghts[header] = len(header)
+    with open(file_csv, "r", newline="") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            for header in headers:
+                value = row[header]
+                if dict_lenghts[header] < len(value):
+                    dict_lenghts[header] = len(value)
+        file.close()
+        return dict_lenghts
 
 
+# Вспомогательная функция для подсчета кол-во строк в CSV файле
+def cnt_rows(file_csv):
+    count = 0
+    with open(file_csv, "r", newline="") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            count += 1
+    return count
 
 
+# Задание 1. Написать функцию show, которая будет выводить в консоль файл CSV.
+def show(file_csv, n_rows, flag):
+    all_flags = ["top", "bottom", "random"]
+    if flag not in all_flags:
+        print("Введеный режим вывода не обнаружен")
+        return
+    headers = get_headers(file_csv)
+    dict_lenghts = max_lenght_columns(file_csv)
+    amt_rows = cnt_rows(file_csv)
+    random_rows = get_random_list(n_rows, 1, amt_rows)
+    for header in headers:
+        space = (dict_lenghts[header] - len(header)) * " "
+        print(header, space, end="")
+    print()
+    count = 1
+    with open(file_csv, "r", newline="") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            for header in headers:
+                value = row[header]
+                space = (dict_lenghts[header] - len(value)) * " "
+                if flag == "top" and count <= n_rows:
+                    print(value, space, end="")
+                    if header == headers[-1]: print()
+                elif flag == "bottom" and count > amt_rows - n_rows:
+                    print(value, space, end="")
+                    if header == headers[-1]: print()
+                elif flag == "random" and count in random_rows:
+                    print(value, space, end="")
+                    if header == headers[-1]: print()
+            count += 1
+        file.close()
 
 
+# Задание 2. Написать функцию info, которая будет выводить кол-во строк в файле и статистику по столбцам:
+def info(file_csv):
+    headers = get_headers(file_csv)
+    stat_col = dict()
+    for header in headers:
+        stat_col[header] = 0
+    with open(file_csv, "r", newline="") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            for header in headers:
+                value = row[header]
+                if value != '':
+                    stat_col[header] += 1
+        file.close()
+    print("Общее количество строк в файле ", file_csv, " = ", cnt_rows(file_csv))
+    print("Статистика ненулевых строк в каждом столбце: ")
+    print(stat_col)
 
 
+#Задание 3: Написать функцию delNaN, удаляющая те строки таблицы, в которых есть пустые ячейки:
+def delNaN(file_csv):
+    with open(file_csv, 'r',newline="") as f:
+        reader = csv.reader(f)
+        data = list(reader)
+        for row in data:
+            if '' in row:
+                data.remove(row)
+        f.close()
+    with open(file_csv, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerows(data)
+        f.close()
 
+#Задание 4: Написать функцию MakeDS, которая случайным образом делит данные (строки) в соотношении 70\30:
+def MakeDS(file_csv):
+    with open(file_csv, 'r') as f:
+        reader = csv.reader(f)
+        data = list(reader)
+        learning_data = data[:int(len(data) * 0.7)]
+        test_data = data[int(len(data) * 0.7):]
+        f.close()
+    if 'Learning' not in listdir(f'{getcwd()}') and 'Testing' not in listdir(f'{getcwd()}'):
+        mkdir('Learning')
+        mkdir('Testing')
+    with open('Learning/l.csv', 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerows(learning_data)
+        f.close()
+    with open('Testing/t.csv', 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerows(test_data)
+        f.close()
 
-
-
+show("Titanic.csv",10,"top")
+info("Titanic.csv")
+delNaN("Titanic.csv")
+MakeDS("Titanic.csv")
 
